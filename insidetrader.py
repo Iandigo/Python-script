@@ -36,8 +36,12 @@ NEWS_CATEGORIES = {
     ],
     "GIAO DỊCH CÁ MẬP": [
         'đăng ký mua', 'đăng ký bán', 'mua thỏa thuận', 'bán thỏa thuận',
-        'hoàn tất mua', 'hoàn tất bán', 'thoái vốn', 'cổ đông lớn',
-        'xả hàng', 'gom mạnh', 'sang tay', 'chào mua công khai'
+        'chào mua công khai', 'hoàn tất mua', 'hoàn tất bán', 'đã mua', 'đã bán', 
+        'mua bất thành', 'bán bất thành', 'không mua hết', 'nâng sở hữu', 
+        'giảm sở hữu', 'nâng tỷ lệ', 'giảm tỷ lệ', 'thoái vốn', 'thoái toàn bộ', 
+        'thoái sạch', 'trở thành cổ đông lớn', 'không còn là cổ đông lớn',
+        'gom thêm', 'gom mạnh', 'gom cổ phiếu', 'xả hàng', 'bán sạch', 
+        'chốt lời', 'bán chui', 'quỹ ngoại mua', 'quỹ ngoại bán', 'sang tay'
     ]
 }
 
