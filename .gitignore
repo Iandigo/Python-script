@@ -1,0 +1,15 @@
+# Bỏ qua file chứa khóa bí mật
+.env
+
+# Bỏ qua cơ sở dữ liệu (Vì nó sẽ thay đổi liên tục khi chạy)
+*.db
+*.csv
+openclaw_master_data.db
+
+# Bỏ qua các file rác của Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+logs/
