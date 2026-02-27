@@ -96,7 +96,8 @@ def job_scan_news():
     
     rss_sources = {
         "CafeF": "https://cafef.vn/doanh-nghiep.rss",
-        "Vietstock": "https://vietstock.vn/rss/doanh-nghiep.vi",
+        "Vietstock-chung-khoan": "https://vietstock.vn/830/chung-khoan/co-phieu.rss",
+        "Vietstock-giao-dich-noi-bo": "https://vietstock.vn/739/chung-khoan/giao-dich-noi-bo.rss",
         "VNExpress_KinhDoanh": "https://vnexpress.net/rss/kinh-doanh.rss"
     }
 
