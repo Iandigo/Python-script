@@ -16,11 +16,11 @@ WATCHLIST = [
     'MBB', 'MSN', 'MWG', 'PLX', 'POW', 'SAB', 'SHB', 'SSB', 'SSI', 'STB', 
     'TCB', 'TPB', 'VCB', 'VHM', 'VIB', 'VIC', 'VJC', 'VNM', 'VPB', 'VRE'
 ]
-SENSITIVITY = 2.5  # Độ nhạy (Gấp 2.5 lần trung bình 20 nến 5p)
-PRICE_THRESHOLD = 1.0  # Chỉ báo khi giá tăng trên 1%
-MAX_WORKERS = 10  # Số lượng "công nhân" chạy song song (Nên để 10-15 để tránh bị API chặn do spam request)
+SENSITIVITY = 2.5       # Độ nhạy (Gấp 2.5 lần trung bình 20 nến 5p)
+PRICE_THRESHOLD = 1.0   # Chỉ báo khi giá tăng/giảm trên 1%
+MAX_WORKERS = 10        # Số lượng "công nhân" chạy song song
 
-alert_cache = {}
+alert_cache = {}  # { ticker: {"buy": candle_time, "sell": candle_time} }
 
 def send_telegram(message):
     try:
@@ -60,26 +60,41 @@ def process_single_ticker(ticker, start_date, end_date):
             
         price_change = ((current_candle['close'] - current_candle['open']) / current_candle['open']) * 100
         candle_time = str(current_candle.get('time', 'unknown_time'))
-        
+        ratio = cur_vol / avg_vol
+
+        # Khởi tạo cache cho mã nếu chưa có
+        if ticker not in alert_cache:
+            alert_cache[ticker] = {"buy": None, "sell": None}
+
+        # --- PHÁT HIỆN CÁ MẬP GOM HÀNG (Volume cao + Giá tăng) ---
         if cur_vol > (avg_vol * SENSITIVITY) and price_change >= PRICE_THRESHOLD:
-            if alert_cache.get(ticker) == candle_time:
-                return None 
-            
-            ratio = cur_vol / avg_vol
-            msg = (
-                f"⚡ <b>PHÁT HIỆN DÒNG TIỀN: {ticker}</b>\n"
-                f"▪️ Biến động Vol: <b>Gấp {ratio:.1f} lần</b> (5p)\n"
-                f"▪️ Giá hiện tại: {current_candle['close']:,} (Tăng {price_change:+.2f}%)\n"
-                f"➡️ <b>Tín hiệu: CÁ MẬP ĐANG GOM HÀNG!</b>"
-            )
-            
-            # Cập nhật cache
-            alert_cache[ticker] = candle_time
-            # Trả về kết quả thay vì gửi ngay để tránh xung đột
-            return (ticker, msg)
+            if alert_cache[ticker]["buy"] == candle_time:
+                pass  # Đã báo rồi, bỏ qua
+            else:
+                alert_cache[ticker]["buy"] = candle_time
+                msg = (
+                    f"⚡ <b>PHÁT HIỆN DÒNG TIỀN: {ticker}</b>\n"
+                    f"▪️ Biến động Vol: <b>Gấp {ratio:.1f} lần</b> (5p)\n"
+                    f"▪️ Giá hiện tại: {current_candle['close']:,} (Tăng {price_change:+.2f}%)\n"
+                    f"➡️ <b>Tín hiệu: CÁ MẬP ĐANG GOM HÀNG! 🟢</b>"
+                )
+                return (ticker, msg)
+
+        # --- PHÁT HIỆN CÁ MẬP XẢ HÀNG (Volume cao + Giá giảm) ---
+        elif cur_vol > (avg_vol * SENSITIVITY) and price_change <= -PRICE_THRESHOLD:
+            if alert_cache[ticker]["sell"] == candle_time:
+                pass  # Đã báo rồi, bỏ qua
+            else:
+                alert_cache[ticker]["sell"] = candle_time
+                msg = (
+                    f"🔴 <b>CẢNH BÁO XẢ HÀNG: {ticker}</b>\n"
+                    f"▪️ Biến động Vol: <b>Gấp {ratio:.1f} lần</b> (5p)\n"
+                    f"▪️ Giá hiện tại: {current_candle['close']:,} (Giảm {price_change:+.2f}%)\n"
+                    f"➡️ <b>Tín hiệu: CÁ MẬP ĐANG XẢ HÀNG! 🔴</b>"
+                )
+                return (ticker, msg)
             
     except Exception as e:
-        # Tắt in lỗi từng mã để màn hình console gọn gàng hơn
         pass
         
     return None
@@ -93,21 +108,21 @@ def check_intraday_flow():
     
     alerts_to_send = []
 
-    # Khởi tạo ThreadPoolExecutor (Quản lý đa luồng)
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # Đẩy toàn bộ 30 mã vào danh sách chờ xử lý song song
         future_to_ticker = {executor.submit(process_single_ticker, ticker, start_date, end_date): ticker for ticker in WATCHLIST}
         
-        # as_completed sẽ lấy kết quả ngay khi có bất kỳ luồng nào chạy xong
         for future in as_completed(future_to_ticker):
             result = future.result()
-            if result: # Nếu có trả về tuple (ticker, msg)
+            if result:
                 alerts_to_send.append(result)
 
-    # Gửi tin nhắn lần lượt sau khi tất cả các luồng đã quét xong
     for ticker, msg in alerts_to_send:
         send_telegram(msg)
-        print(f"🚨 Đã gửi báo động: {ticker}")
+        # In log khác nhau cho 2 loại tín hiệu
+        if "GOM HÀNG" in msg:
+            print(f"🟢 Đã gửi báo động GOM: {ticker}")
+        else:
+            print(f"🔴 Đã gửi báo động XẢ:  {ticker}")
 
     scan_duration = time.time() - start_time_scan
     print(f"⏳ Hoàn thành quét {len(WATCHLIST)} mã trong {scan_duration:.2f} giây.")
@@ -120,7 +135,7 @@ if __name__ == "__main__":
         while True:
             if is_market_open():
                 check_intraday_flow()
-                time.sleep(120) # Vẫn giữ nhịp 2 phút 1 lần để an toàn
+                time.sleep(120)
             else:
                 now_str = datetime.now().strftime('%H:%M:%S')
                 print(f"[{now_str}] Thị trường đang nghỉ. Bot đang chờ...")

@@ -1,0 +1,17 @@
+{
+  "start_date": "2025-01-01",
+  "end_date": "2025-12-31",
+  "short_window": 20,
+  "long_window": 50,
+  "rsi_period": 14,
+  "rsi_ob": 70,
+  "rsi_os": 30,
+  "initial_capital": 100000000,
+  "position_size_pct": 10,
+  "commission_pct": 0.15,
+  "slippage_pct": 0.05,
+  "stop_loss_pct": 5.0,
+  "take_profit_pct": 15.0,
+  "max_hold_days": 60,
+  "max_workers": 8
+}
